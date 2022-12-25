@@ -1,0 +1,83 @@
+import sys
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QGridLayout, QMessageBox, QWidget
+from PyQt5.QtGui import QIntValidator
+
+import nostr
+
+API_ENDPOINT = "https://api.nostr.com"
+API_KEY = "your_api_key_here"
+
+class CalculatorWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def clear(self):
+        self.display.setText('')
+
+    def initUI(self):
+        self.num1_field = QLineEdit(self)
+        self.num1_field.setInputMask("000")
+        self.num2_field = QLineEdit(self)
+        self.num2_field.setInputMask("000")
+        self.result_label = QLabel("", self)
+
+        add_button = QPushButton("+", self)
+        add_button.clicked.connect(lambda: self.update_result("add"))
+        sub_button = QPushButton("-", self)
+        sub_button.clicked.connect(lambda: self.update_result("sub"))
+        mul_button = QPushButton("*", self)
+        mul_button.clicked.connect(lambda: self.update_result("mul"))
+        div_button = QPushButton("/", self)
+        div_button.clicked.connect(lambda: self.update_result("div"))
+        clear_button = QPushButton("Clear", self)
+        clear_button.clicked.connect(self.clear)
+
+        grid = QGridLayout()
+        grid.setSpacing(10)
+
+        grid.addWidget(self.num1_field, 1, 0)
+        grid.addWidget(self.num2_field, 1, 1)
+        grid.addWidget(add_button, 1, 2)
+        grid.addWidget(sub_button, 1, 3)
+        grid.addWidget(self.result_label, 2, 0, 1, 4)
+        grid.addWidget(mul_button, 3, 0)
+        grid.addWidget(div_button, 3, 1)
+        grid.addWidget(clear_button, 3, 2, 1, 2)
+
+        # create layout-holding widget
+        self.widget = QWidget(self)
+        self.setCentralWidget(self.widget)
+        self.widget.setLayout(grid)
+
+        self.setGeometry(300, 300, 300, 150)
+        self.setWindowTitle("Nostr Calculator")
+        self.show()
+
+    def update_result(self, operation):
+        try:
+            num1 = int(self.num1_field.text())
+            num2 = int(self.num2_field.text())
+            result = self.calculate(operation, num1, num2)
+        except ValueError:
+            QMessageBox.warning(self, "Invalid Input",
+                                "Please enter valid numerical values.")
+            return
+        except Exception as e:
+            QMessageBox.warning(
+                self, "Error", "An error occurred: {}".format(str(e)))
+            return
+
+        if result is not None:
+            self.result_label.setText(str(result["result"]))
+        else:
+            QMessageBox.warning(
+                self, "Error", "An error occurred while retrieving the result from the Nostr API.")
+
+    def calculate(self, operation, num1, num2):
+        return nostr.calculate(API_ENDPOINT, API_KEY, operation, num1, num2)
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = CalculatorWindow()
